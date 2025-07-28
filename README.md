@@ -23,12 +23,21 @@ Our solution for the "Connecting the Dots" challenge is designed to function as 
 
 ## Docker Setup and Execution
 
+### Prerequisites
+- Docker Desktop installed and running
+- Input directory containing:
+  - PDF documents
+  - challenge1b_input.json
+- Empty output directory for results
+
 ### Build the Docker Image
 ```bash
 docker build --platform linux/amd64 -t adobe-hackathon-solution .
 ```
 
 ### Run the Solution
+
+**macOS/Linux (Terminal):**
 ```bash
 docker run --rm \
   -v "$(pwd)/input:/app/input:ro" \
@@ -37,11 +46,19 @@ docker run --rm \
   adobe-hackathon-solution
 ```
 
-### Requirements:
-- Input directory containing:
-  - PDF documents
-  - challenge1b_input.json
-- Empty output directory for results
+**Windows (PowerShell):**
+```powershell
+docker run --rm `
+  -v "${pwd}\input:/app/input:ro" `
+  -v "${pwd}\output:/app/output" `
+  --network none `
+  adobe-hackathon-solution
+```
+
+**Windows (Command Prompt):**
+```cmd
+docker run --rm -v "%cd%\input:/app/input:ro" -v "%cd%\output:/app/output" --network none adobe-hackathon-solution
+```
 
 ### Notes:
 - Runs fully offline once built
