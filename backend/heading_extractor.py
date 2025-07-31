@@ -5,6 +5,9 @@ from PIL import Image
 import pytesseract
 import io
 from difflib import SequenceMatcher
+from pathlib import Path
+
+BASE_DIR = Path(__file__).parent
 
 def similar(a, b):
     return SequenceMatcher(None, a, b).ratio() > 0.85

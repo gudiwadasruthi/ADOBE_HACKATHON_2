@@ -11,15 +11,16 @@ import nltk
 from nltk.corpus import wordnet
 
 # --- ENVIRONMENT-AWARE NLP SETUP ---
-# This block makes the script work both locally and inside the Docker container.
-
-# Define the path where our Dockerfile *guarantees* the NLTK data will be.
-NLTK_DATA_PATH_IN_CONTAINER = "/app/nltk_data"
+# Always use paths relative to the script location
+BASE_DIR = Path(__file__).parent
+INPUT_DIR = BASE_DIR / "input"
+OUTPUT_DIR = BASE_DIR / "output"
+NLTK_DATA_PATH_IN_CONTAINER = BASE_DIR / "nltk_data"
 
 # Check if we are inside the Docker container by seeing if that path exists.
-if os.path.exists(NLTK_DATA_PATH_IN_CONTAINER):
-    # If we are in Docker, tell NLTK to look for data in that specific path.
-    nltk.data.path.append(NLTK_DATA_PATH_IN_CONTAINER)
+if NLTK_DATA_PATH_IN_CONTAINER.exists():
+    nltk.data.path.append(str(NLTK_DATA_PATH_IN_CONTAINER))
+
 else:
     # If we are running locally, use the standard download-on-demand logic.
     try:
@@ -120,13 +121,44 @@ def analyze_collection(input_config_path: Path, rich_sections_dir: Path, output_
         config = json.load(f)
     persona, job, documents = config['persona']['role'], config['job_to_be_done']['task'], config['documents']
 
-    # --- THIS IS THE CORRECTED, ENVIRONMENT-AWARE MODEL LOADING ---
+    # --- ENHANCED MODEL LOADING WITH FALLBACKS ---
     print("Loading semantic analysis model...")
     model_name = 'intfloat/e5-base-v2'
-    # Use the environment variable defined in the Dockerfile.
-    # For local use, os.getenv() returns None, and the library uses its default cache.
-    cache_folder = os.getenv("TRANSFORMERS_CACHE")
-    model = SentenceTransformer(model_name, cache_folder=cache_folder)
+    
+    # Check multiple possible cache locations
+    possible_cache_folders = [
+        os.getenv("SENTENCE_TRANSFORMERS_HOME"),
+        os.getenv("TRANSFORMERS_CACHE"),
+        "/app/model_cache",  # Docker default
+        os.path.expanduser("~/.cache/huggingface/hub"),  # Local default
+    ]
+    
+    # Find the first existing cache folder
+    cache_folder = None
+    for folder in possible_cache_folders:
+        if folder and os.path.exists(folder):
+            cache_folder = folder
+            print(f"  - Using cache folder: {cache_folder}")
+            break
+    
+    # Load the model with error handling
+    try:
+        model = SentenceTransformer(
+            model_name,
+            cache_folder=cache_folder,
+            device='cpu'  # Force CPU for consistency between environments
+        )
+        print("  - Model loaded successfully")
+    except Exception as e:
+        print(f"  - Error loading model: {str(e)}")
+        print("  - Attempting to load model without cache...")
+        try:
+            model = SentenceTransformer(model_name, device='cpu')
+            print("  - Model loaded without cache")
+        except Exception as e2:
+            print(f"  - Critical: Failed to load model: {str(e2)}")
+            print("  - The application cannot continue without the model.")
+            raise
     # -----------------------------------------------------------
 
     expanded_query = expand_query_with_nlp(persona, job)

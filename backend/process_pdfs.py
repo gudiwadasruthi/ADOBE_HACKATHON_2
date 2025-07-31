@@ -1,27 +1,20 @@
-# process_pdfs.py (The Master Conductor Script)
-
 import sys
 from pathlib import Path
 import json
-
-# Import the functions from our two library files
 from heading_extractor import extract_outline
 from analyze_collections import analyze_collection
+
+BASE_DIR = Path(__file__).parent
+input_dir = BASE_DIR / "input"
+output_dir = BASE_DIR / "output"
 
 def main():
     """
     Main function to run the entire two-stage hackathon pipeline.
     """
     # --- SETUP ---
-    # Detect if we're in Docker or running locally
-    if Path("/app/input").is_dir():
-        input_dir = Path("/app/input")
-        output_dir = Path("/app/output")
-        print("Running in Docker mode.")
-    else:
-        input_dir = Path("./input")
-        output_dir = Path("./output")
-        print("Running in local development mode.")
+    print(f"Input directory: {input_dir.resolve()}")
+    print(f"Output directory: {output_dir.resolve()}")
 
     # Define a temporary, intermediate directory for the 1A results
     intermediate_dir = output_dir / "1a_outlines"
@@ -40,22 +33,17 @@ def main():
         for pdf_file in pdf_files:
             print(f"  - Processing: {pdf_file.name}")
             try:
-                # Call our engine and ask for the simple_outline format
                 extracted_data = extract_outline(str(pdf_file))
-                
                 output_file_path = intermediate_dir / f"{pdf_file.stem}.json"
                 with open(output_file_path, 'w', encoding='utf-8') as f:
                     json.dump(extracted_data, f, indent=4)
-
             except Exception as e:
                 print(f"[ERROR] Failed during Stage 1 processing of {pdf_file.name}: {e}", file=sys.stderr)
 
     # --- STAGE 2: SEMANTIC ANALYSIS (ROUND 1B) ---
-    # Check if the 1B input file exists to trigger the analysis
     input_config_path = input_dir / "challenge1b_input.json"
     if input_config_path.exists():
         try:
-            # Call the analysis function from our other script
             analyze_collection(
                 input_config_path=input_config_path,
                 rich_sections_dir=intermediate_dir,

@@ -57,7 +57,7 @@ docker run --rm `
 
 **Windows (Command Prompt):**
 ```cmd
-docker run --rm -v "%cd%\input:/app/input:ro" -v "%cd%\output:/app/output" --network none adobe-hackathon-solution
+docker run --rm -v "%cd%\input:/app/input:ro" -v "%cd%\output:/app/output" adobe-hackathon-solution
 ```
 
 ### Notes:
